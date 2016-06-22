@@ -7,11 +7,11 @@
 	</div>
 	<div class="row">
 		<div class="col-md-8">
-			<?php //var_dump($formErrors);
-				if(isset($formErrors) AND ($formErrors != 0)){
+			<?php 
+				if (validation_errors() != NULL) { //Validation
 			?>
 				<div class="alert alert-danger">
-					<?=$formErrors?>
+					<?=validation_errors()?>
 				</div>
 				<?php }else{
 					if($this->session->flashdata('success_msg')) {?>
@@ -51,7 +51,7 @@
 				</div>
 				<div class="form-group">
 					<div class="col-md-10">
-						<input type="submit" value="Enviar" class="btn btn-default pull-right"/>
+						<input type="submit" value="Enviar" class="btn btn-success pull-right"/>
 					</div>
 				</div>
 		</form>

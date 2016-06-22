@@ -4,7 +4,7 @@
 
 		function __construct(){
 			parent::__construct();
-			$this->load->library(array('form_validation','session'));
+			$this->load->library(array('form_validation','session', 'upload'));
 			$this->load->helper('form');
 		}
 
@@ -20,7 +20,8 @@
 			$this->form_validation->set_rules('mensagem', 'Mensagem', 'trim|required|min_length[30]');
 
 			if($this->form_validation->run() == FALSE){
-				$data['formErrors'] = validation_errors();		
+//				$data['formErrors'] = validation_errors();		
+				$this->load->view('fale-conosco', $data);
 			}else{
 			$formData = $this->input->post();
 			$emailStatus = $this->SendEmailToAdmin($formData['email'], $formData['nome'],"ricacom@gmail.com","To Ricardo", $formData['assunto'],$formData['mensagem'],$formData['email'],$formData['nome']);
@@ -29,8 +30,9 @@
 			}else{
 				$data['formErrors'] = "Desculpe! Não foi possível enviar o seu contato. tente novamente mais tarde.";
 				}
+				$this->load->view('fale-conosco',$data);
 			}
-			$this->load->view('fale-conosco',$data);
+			
 		}
 
 
@@ -39,11 +41,34 @@
 			$data['title'] = "LCI | Trabalhe Conosco";
 			$data['description'] = "Exercício de exemplo do capítulo 5 do livro CodeIgniter";
 
-			$this->load->view('trabalhe-conosco',$data);
+			$this->form_validation->set_rules('nome', 'Nome', 'trim|required|min_length[3]');
+			$this->form_validation->set_rules('email', 'Email', 'trim|required|valid_email');
+			$this->form_validation->set_rules('telefone', 'Tefefone', 'trim|required|min_length[5]');
+			$this->form_validation->set_rules('mensagem', 'Mensagem', 'trim|required|min_length[30]');
+
+			if($this->form_validation->run() == FALSE){
+				$data['formErrors'] = validation_errors();
+			}else{
+
+			$uploadCurriculo = $this->UploadFile('curriculo');
+				if($uploadCurriculo['error']){
+					$data['formErrors'] = $uploadCurriculo['message'];
+				}else{
+					$formData = $this->input->post();
+					$emailStatus = $this->SendEmailToAdmin($formData['email'],$formData['nome'],"ricacom@gmail.com","To Ricardo", $formData['telefone'], $formData['mensagem'],$formData['email'],$formData['nome'],$uploadCurriculo['fileData']['full_path']);
+					if($emailStatus){
+						$this->session->set_flashdata('success_msg', 'Contato recebido com sucesso!');
+					}else{
+						$data['formErrors'] = "Desculpe! Não foi possível enviar o seu contato. tente novamente mais tarde.";
+					}
+				}
+			}
+				$this->load->view('trabalhe-conosco',$data);
 		}
+		
 
 
-		private function SendEmailToAdmin($from, $fromName, $to, $toName, $subject, $message, $reply = null, $replyName = null){
+		private function SendEmailToAdmin($from, $fromName, $to, $toName, $subject, $message, $reply = null, $replyName = null, $attach = null){
 		
 		$this->load->library('email');
 			$config['charset'] = 'utf-8';
@@ -73,6 +98,9 @@
 		$this->email->to($to, $toName);
 			if($reply)
 			$this->email->reply_to($reply, $replyName);
+			if($attach)
+			$this->email->attach($attach);
+
 			$this->email->subject($subject);
 			$this->email->message($message);
 			if($this->email->send())
@@ -80,6 +108,28 @@
 			else
 				return false;
 		}
+
+		private function UploadFile($inputFileName){
+			$this->load->library('upload');
+			$path = "../curriculos";
+			$config['upload_path'] = $path;
+			$config['allowed_types'] = 'doc|docx|pdf|zip|rar';
+			$config['max_size'] = '5120';
+			$config['encrypt_name'] = TRUE;
+			if (!is_dir($path))
+			mkdir($path, 0777, $recursive = true);
+			$this->upload->initialize($config);
+			if (!$this->upload->do_upload($inputFileName)) {
+			$data['error'] = true;
+			$data['message'] = $this->upload->display_errors();
+			} else {
+				$data['error'] = false;
+				$data['fileData'] = $this->upload->data();
+				}
+			return $data;
+			}
+
+
 
 	}// close class
 ?>
